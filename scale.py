@@ -1,47 +1,51 @@
+# This code is designed as a backend for a functional scale apparatus.
+# It has borrowed some blocks of code from publically available tutorials and resources.
+# Authors include tatobari and their hx711py code available off github.
 import sys
-from PCF8574 import PCF8574_GPIO
-from Adafruit_LCD1602 import Adafruit_CharLCD
+import RPi.GPIO as GPIO
+
 from time import *
 from datetime import datetime
-
+from PCF8574 import PCF8574_GPIO
+from Adafruit_LCD1602 import Adafruit_CharLCD
+from hx711 import HX711
 
 # VARIABLES
-EMULATE_HX711=False
 REFERENCEUNIT = 1
+BUTTON_GPIO = 16       # Button pin
 
-
-if not EMULATE_HX711:
-    import RPi.GPIO as GPIO
-    from hx711 import HX711
-else:
-    from emulated_hx711 import HX711
-
+# BUTTON SETUP
+GPIO.setmode(GPIO.BCM) # Sets GPIO numbering mode
+GPIO.setup(BUTTON_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # FUNCTIONS
-def cleanAndExit():
+def cleanAndExit():    
     print("\nCleaning...")
-
-    if not EMULATE_HX711:
-        GPIO.cleanup()
-        
+    GPIO.cleanup()       
     print("Bye!")
     sys.exit()
-    
+
+def button_callback(channel): # Tare function activated via button
+    print("Scale tare'd")
+    hx.reset()
+    hx.tare()
+
+GPIO.add_event_detect(BUTTON_GPIO, GPIO.FALLING, callback=button_callback) #falling edge detection for button     
     
 def loop():
     mcp.output(3,1)     # turn on LCD backlight
     lcd.begin(16,2)     # set number of LCD lines and columns
     while(True):
                  
-        #lcd.clear()
-        lcd.setCursor(0,0)      # set cursor position
-        val = hx.get_weight()   # gets weight reading from sensor
-        
-        lcd.message(f'{val:.2f}') 
+        lcd.clear()
+        lcd.setCursor(0,0)  # set cursor position
+        val = hx.get_weight() #gets weight reading from sensor
+        lcd.message("{0}g".format(round(val))) 
 
         hx.power_down()
         hx.power_up()
-        sleep(1)
+        
+        sleep(2)
     
 PCF8574_address = 0x27      # I2C address of the PCF8574 chip.
 PCF8574A_address = 0x3F     # I2C address of the PCF8574A chip.
